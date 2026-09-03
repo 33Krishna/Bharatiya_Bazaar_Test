@@ -41,7 +41,10 @@ jobs:
       run: npm ci
 
     - name: Run Prisma Migrate
-      run: npx prisma migrate dev --name init
+      run: npx prisma migrate deploy
+
+    - name: Generate Prisma Client
+      run: npx prisma generate
 
     - name: Run Unit Tests (Scenarios A-G)
       run: npm run test
