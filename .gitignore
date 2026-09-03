@@ -1,0 +1,25 @@
+# Dependencies
+node_modules/
+
+# Environment variables
+.env
+.env.*
+*.env
+!.env.example
+
+# Logs and backups
+logs/
+*.log
+backups/
+
+# Build & coverage
+coverage/
+dist/
+/generated/prisma
+
+# Scratch & temporary artifacts
+scratch/
+
+# OS files
+.DS_Store
+*/.DS_Store

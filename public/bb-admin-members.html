@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Member Explorer | Bharatiya Bazaar Admin</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700&family=Noto+Sans+Devanagari:wght@400;600&display=swap"
+    rel="stylesheet"
+  />
+
+  <link rel="stylesheet" href="css/admin-sidebar.css" />
+  <script src="js/admin-sidebar.js"></script>
+
+  <style>
+    :root {
+      --navy: #0d1b2a;
+      --navy-2: #14263b;
+      --teal: #0f9d9d;
+      --teal-dark: #0b7c7c;
+      --amber: #f5a623;
+      --bg: #f4f7fb;
+      --card: #ffffff;
+      --text: #17233a;
+      --muted: #64748b;
+      --border: #dbe4ef;
+      --success: #16a34a;
+      --warning: #d97706;
+      --danger: #dc2626;
+      --info: #0369a1;
+      --purple: #7c3aed;
+      --radius-card: 12px;
+      --radius-btn: 8px;
+      --shadow: 0 10px 30px rgba(13, 27, 42, 0.08);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: "Inter", "Noto Sans Devanagari", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    h1, h2, h3, h4 { font-family: "Poppins", "Noto Sans Devanagari", sans-serif; }
+
+    .container { width: min(1200px, calc(100% - 32px)); margin: 24px auto 40px; }
+
+    .page-head {
+      margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 12px;
+    }
+    .page-head h1 { font-size: clamp(22px, 2.5vw, 30px); color: var(--navy); margin-bottom: 4px; }
+    .page-head p { color: var(--muted); font-size: 14px; }
+
+    .card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius-card); box-shadow: var(--shadow);
+    }
+
+    .panel { padding: 22px; margin-bottom: 20px; }
+    .panel h2 { font-size: 18px; color: var(--navy); margin-bottom: 12px; }
+
+    .badge { display: inline-flex; padding: 3px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; }
+    .badge.success { background: #e8f8ee; color: var(--success); }
+    .badge.admin { background: #e0f2fe; color: var(--info); }
+    .badge.warning { background: #fff4e0; color: var(--warning); }
+    .badge.danger { background: #fee2e2; color: var(--danger); }
+
+    .search-bar {
+      display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap;
+    }
+    .search-input {
+      flex: 1; min-width: 240px; border: 1px solid var(--border); border-radius: 8px;
+      padding: 10px 14px; font-size: 14px; background: #fff; outline: none;
+    }
+    .search-input:focus { border-color: var(--teal); }
+
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { border: 1px solid var(--border); padding: 10px 12px; text-align: left; font-size: 12.5px; vertical-align: middle; }
+    th { background: #f8fafc; color: var(--navy); font-weight: 700; }
+
+    .table-wrap { overflow-x: auto; }
+
+    .nav-btn {
+      padding: 8px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; text-decoration: none;
+      background: #fff; color: var(--navy); border: 1px solid var(--border); cursor: pointer;
+    }
+    .nav-btn:hover { background: #f8fafc; }
+
+    .btn-action {
+      padding: 5px 10px; border-radius: 6px; font-size: 11.5px; font-weight: 700; cursor: pointer; border: 1px solid transparent;
+    }
+    .btn-action.reset-pass { background: #fef3c7; color: #b45309; border-color: #fde68a; }
+    .btn-action.reset-pass:hover { background: #f59e0b; color: #fff; }
+
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(13, 27, 42, 0.65); backdrop-filter: blur(4px);
+      display: flex; align-items: center; justify-content: center; z-index: 1000;
+    }
+    .modal-card {
+      background: #fff; border-radius: var(--radius-card); width: min(480px, calc(100% - 32px));
+      padding: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.25); border: 1px solid var(--border);
+    }
+    .temp-pass-box {
+      background: #f8fafc; border: 2px dashed var(--amber); border-radius: 8px; padding: 14px;
+      display: flex; justify-content: space-between; align-items: center; margin: 16px 0;
+    }
+    .temp-pass-text { font-family: monospace; font-size: 18px; font-weight: 700; color: var(--navy); letter-spacing: 1px; }
+    .btn-copy {
+      background: #fef3c7; border: 1px solid var(--amber); color: #92400e; border-radius: 6px;
+      padding: 6px 12px; font-size: 12.5px; font-weight: 600; cursor: pointer;
+    }
+    .btn-copy:hover { background: var(--amber); color: #fff; }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body class="admin-body">
+  <div class="admin-main">
+    <!-- TOPBAR -->
+    <header class="admin-topbar">
+      <div class="admin-topbar-left">
+        <button class="sb-toggle-btn" onclick="toggleSidebar()">☰</button>
+        <div class="admin-breadcrumbs">
+          <span>Management</span> / <strong>Member Explorer</strong>
+        </div>
+      </div>
+      <div class="admin-topbar-right">
+        <span class="admin-pill role-super" id="membersCountBadge">
+          👥 0 Total Members
+        </span>
+      </div>
+    </header>
+
+    <main class="container">
+      <section class="page-head">
+        <div>
+          <h1>Member Registry &amp; Explorer</h1>
+          <p>सदस्य अन्वेषक · Inspect registered accounts, verify multi-IDs, check wallet balances, and audit tree placements</p>
+        </div>
+        <div>
+          <button class="nav-btn" onclick="loadMembers()">🔄 Refresh Members</button>
+        </div>
+      </section>
+
+      <section class="card panel">
+        <h2>Registered Platform Members</h2>
+        <p style="font-size:13px; color:var(--muted); margin-bottom:14px;">
+          Search across member names, mobile numbers, or member codes.
+        </p>
+
+        <div class="search-bar">
+          <input
+            type="text"
+            id="memberSearchInput"
+            class="search-input"
+            placeholder="🔍 Search member name, mobile number, or BB Code..."
+            oninput="searchMembers()"
+          />
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Member Code</th>
+                <th>Full Name</th>
+                <th>Mobile Number</th>
+                <th>KYC Tier &amp; Status</th>
+                <th>Cards Count</th>
+                <th>Wallet Balance</th>
+                <th>Account Status</th>
+                <th>Joined At</th>
+                <th style="text-align:center;">Action</th>
+              </tr>
+            </thead>
+            <tbody id="membersTableBody">
+              <tr><td colspan="9" style="text-align:center; padding:20px; color:var(--muted);">Loading members...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- RESET PASSWORD MODAL -->
+  <div id="resetPassModal" class="modal-overlay hidden" onclick="handleModalBackdropClick(event)">
+    <div class="modal-card" onclick="event.stopPropagation()">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+        <h2 style="font-size:18px; color:var(--navy);">🔑 Reset Member Password</h2>
+        <button type="button" aria-label="Close" onclick="closeResetModal()" style="border:none; background:none; font-size:22px; cursor:pointer; color:var(--muted); padding:4px 8px; line-height:1;">&times;</button>
+      </div>
+
+      <div id="resetAlert" class="note hidden"></div>
+
+      <!-- STEP 1: CONFIRMATION -->
+      <div id="resetConfirmContent">
+        <p style="font-size:13.5px; color:var(--text); margin-bottom:14px;">
+          Are you sure you want to generate a new temporary password for member <strong id="resetTargetName">-</strong> (<code id="resetTargetCode" style="font-size:13px; color:var(--teal);">-</code>)?
+        </p>
+        <div class="note" style="border-left-color:var(--amber); background:#fffbeb; color:#92400e; font-size:12.5px; margin-bottom:16px;">
+          ⚠️ <strong>Security Notice:</strong> The member's existing password will immediately become invalid. A secure 12-character temporary password will be generated and shown once.
+        </div>
+        <div style="display:flex; justify-content:flex-end; gap:10px;">
+          <button type="button" class="nav-btn" onclick="closeResetModal()">Cancel</button>
+          <button type="button" id="btnConfirmReset" class="btn-action reset-pass" style="padding:8px 16px; font-size:13px;" onclick="confirmResetPassword()">⚡ Generate New Password</button>
+        </div>
+      </div>
+
+      <!-- STEP 2: RESULT DISPLAY -->
+      <div id="resetResultContent" class="hidden">
+        <div class="note success" style="margin-bottom:12px;">
+          <strong>✓ Password Reset Successfully!</strong>
+        </div>
+        <p style="font-size:13px; color:var(--muted);">
+          Provide this temporary password to the member. It is valid immediately for member login:
+        </p>
+        <div class="temp-pass-box">
+          <span id="tempPassDisplay" class="temp-pass-text">BB@TempXXXXXX</span>
+          <button type="button" id="btnCopyPass" class="btn-copy" onclick="copyTempPassword()">📋 Copy Password</button>
+        </div>
+        <div class="note danger" style="font-size:12px; margin-bottom:16px;">
+          ⚠️ <strong>Shown Only Once:</strong> This temporary password cannot be viewed or retrieved after closing this window.
+        </div>
+        <div style="display:flex; justify-content:flex-end;">
+          <button type="button" class="nav-btn" style="background:var(--teal); color:#fff; border:none;" onclick="closeResetModal()">Done</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let searchTimeout = null;
+    let activeResetMemberId = null;
+    let currentTempPassword = "";
+
+    function escapeHtml(str) {
+      if (str === null || str === undefined) return "";
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    function formatCurrency(paise) {
+      const rupees = (Number(paise || 0) / 100);
+      return "₹" + rupees.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function formatDate(dateStr) {
+      if (!dateStr) return "-";
+      const d = new Date(dateStr);
+      return d.toLocaleString("en-IN", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
+    }
+
+    function getAdminToken() {
+      return sessionStorage.getItem("admin_token") || localStorage.getItem("bb_admin_token") || "";
+    }
+
+    function searchMembers() {
+      clearTimeout(searchTimeout);
+      searchTimeout = setTimeout(loadMembers, 300);
+    }
+
+    function handleModalBackdropClick(event) {
+      if (event.target && event.target.id === "resetPassModal") {
+        closeResetModal();
+      }
+    }
+
+    function openResetModal(memberId, memberCode, memberName) {
+      activeResetMemberId = memberId;
+      currentTempPassword = "";
+
+      const modal = document.getElementById("resetPassModal");
+      const confirmView = document.getElementById("resetConfirmContent");
+      const resultView = document.getElementById("resetResultContent");
+      const alertBox = document.getElementById("resetAlert");
+      const nameEl = document.getElementById("resetTargetName");
+      const codeEl = document.getElementById("resetTargetCode");
+
+      if (nameEl) nameEl.textContent = memberName || "Member";
+      if (codeEl) codeEl.textContent = memberCode || "-";
+      if (alertBox) {
+        alertBox.classList.add("hidden");
+        alertBox.textContent = "";
+      }
+      if (confirmView) confirmView.classList.remove("hidden");
+      if (resultView) resultView.classList.add("hidden");
+
+      if (modal) {
+        modal.classList.remove("hidden");
+        modal.style.display = "flex";
+      }
+    }
+
+    function closeResetModal() {
+      const modal = document.getElementById("resetPassModal");
+      const alertBox = document.getElementById("resetAlert");
+      if (alertBox) {
+        alertBox.classList.add("hidden");
+        alertBox.textContent = "";
+      }
+      if (modal) {
+        modal.classList.add("hidden");
+        modal.style.display = "none";
+      }
+      activeResetMemberId = null;
+      currentTempPassword = "";
+    }
+
+    window.addEventListener("keydown", function(e) {
+      if (e.key === "Escape") {
+        closeResetModal();
+      }
+    });
+
+    window.openResetPasswordModal = openResetModal;
+
+    async function copyTempPassword() {
+      if (!currentTempPassword) return;
+      const btn = document.getElementById("btnCopyPass");
+      try {
+        await navigator.clipboard.writeText(currentTempPassword);
+        if (btn) {
+          const orig = btn.textContent;
+          btn.textContent = "✓ Copied!";
+          setTimeout(() => { btn.textContent = orig; }, 1500);
+        }
+      } catch (e) {
+        const temp = document.createElement("textarea");
+        temp.value = currentTempPassword;
+        document.body.appendChild(temp);
+        temp.select();
+        document.execCommand("copy");
+        document.body.removeChild(temp);
+        if (btn) {
+          const orig = btn.textContent;
+          btn.textContent = "✓ Copied!";
+          setTimeout(() => { btn.textContent = orig; }, 1500);
+        }
+      }
+    }
+
+    async function confirmResetPassword() {
+      if (!activeResetMemberId) return;
+      const btn = document.getElementById("btnConfirmReset");
+      const alertBox = document.getElementById("resetAlert");
+      const confirmView = document.getElementById("resetConfirmContent");
+      const resultView = document.getElementById("resetResultContent");
+      const passDisplay = document.getElementById("tempPassDisplay");
+
+      try {
+        if (btn) {
+          btn.disabled = true;
+          btn.textContent = "Generating...";
+        }
+
+        const token = getAdminToken();
+        if (!token) throw new Error("Admin session not found. Please log in again.");
+
+        const res = await fetch(`/api/admin/members/${activeResetMemberId}/reset-password`, {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${token}`,
+            "Content-Type": "application/json"
+          }
+        });
+
+        const data = await res.json();
+        if (!res.ok || !data.success) {
+          throw new Error(data.error?.message || "Failed to reset password.");
+        }
+
+        currentTempPassword = data.data.temporaryPassword || "";
+        if (passDisplay) passDisplay.textContent = currentTempPassword;
+
+        if (confirmView) confirmView.classList.add("hidden");
+        if (resultView) resultView.classList.remove("hidden");
+      } catch (err) {
+        if (alertBox) {
+          alertBox.className = "note danger";
+          alertBox.textContent = err.message || "An unexpected error occurred.";
+          alertBox.classList.remove("hidden");
+        } else {
+          alert(err.message || "Failed to reset password.");
+        }
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = "⚡ Generate New Password";
+        }
+      }
+    }
+
+    async function loadMembers() {
+      const tbody = document.getElementById("membersTableBody");
+      const query = (document.getElementById("memberSearchInput").value || "").trim();
+      const token = getAdminToken();
+      if (!token) return;
+
+      try {
+        const res = await fetch(`/api/admin/members?search=${encodeURIComponent(query)}&limit=100`, {
+          headers: { "Authorization": `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (!res.ok || !data.success) throw new Error(data.error?.message || "Failed to load members.");
+
+        const members = data.data.members || [];
+        const total = data.data.total || members.length;
+
+        document.getElementById("membersCountBadge").textContent = `👥 ${total} Total Members`;
+
+        if (members.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding:24px; color:var(--muted);">No members found.</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = members.map(m => `
+          <tr>
+            <td><strong style="font-family:monospace; color:var(--navy); font-size:13.5px;">${escapeHtml(m.memberCode || m.id.slice(-8))}</strong></td>
+            <td><strong>${escapeHtml(m.name)}</strong></td>
+            <td><span style="font-family:monospace;">+91 ${escapeHtml(m.mobile || '-')}</span></td>
+            <td>
+              <span class="badge ${m.kycStatus === 'APPROVED' ? 'success' : (m.kycStatus === 'REJECTED' ? 'danger' : 'warning')}">
+                ${escapeHtml(m.kycTier || 'TIER_1')} · ${escapeHtml(m.kycStatus || 'PENDING')}
+              </span>
+            </td>
+            <td><span class="badge admin">${(m.idCards || []).length} ID(s)</span></td>
+            <td><strong style="color:var(--teal);">${formatCurrency(m.mainWallet?.balancePaise || 0)}</strong></td>
+            <td><span class="badge ${m.status === 'ACTIVE' ? 'success' : 'danger'}">${escapeHtml(m.status || 'ACTIVE')}</span></td>
+            <td>${formatDate(m.createdAt)}</td>
+            <td style="text-align:center;">
+              <button type="button" class="btn-action reset-pass" onclick="openResetModal('${m.id}', '${escapeHtml(m.memberCode || '')}', '${escapeHtml(m.name || '')}')">🔑 Reset Password</button>
+            </td>
+          </tr>
+        `).join("");
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding:20px; color:var(--danger);">${escapeHtml(err.message)}</td></tr>`;
+      }
+    }
+
+    window.addEventListener("DOMContentLoaded", loadMembers);
+  </script>
+</body>
+</html>

@@ -1,0 +1,58 @@
+{
+  "name": "bb-backend",
+  "version": "1.0.0",
+  "description": "Bharatiya Bazaar backend",
+  "main": "src/server.js",
+  "scripts": {
+    "pretest": "node scripts/prepare-test-db.js",
+    "test": "jest tests/scenarios tests/unit --runInBand --forceExit",
+    "test:unit": "jest tests/unit --runInBand --forceExit",
+    "test:scenarios": "jest tests/scenarios --runInBand --forceExit",
+    "test:integration": "jest tests/integration --runInBand --detectOpenHandles --coverage --collectCoverageFrom='src/services/**/*.js'",
+    "seed:dev": "node scratch/seed_full_production_state.js",
+    "dev": "nodemon src/server.js",
+    "start": "node src/server.js",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:studio": "prisma studio",
+    "prisma:generate": "prisma generate"
+  },
+  "keywords": [
+    "backend",
+    "express",
+    "prisma"
+  ],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@prisma/adapter-pg": "^7.9.1",
+    "@prisma/client": "^7.9.1",
+    "bcrypt": "^6.0.0",
+    "cors": "^2.8.5",
+    "dotenv": "^17.0.1",
+    "express": "^5.1.0",
+    "express-rate-limit": "^8.6.2",
+    "helmet": "^8.3.0",
+    "jsonwebtoken": "^9.0.3",
+    "node-cron": "^4.6.0",
+    "pg": "^8.23.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "jest": "^30.4.2",
+    "nodemon": "^3.1.10",
+    "prisma": "^7.9.1",
+    "supertest": "^7.2.2"
+  },
+  "jest": {
+    "setupFiles": ["<rootDir>/tests/jest.setup.js"],
+    "coverageThreshold": {
+      "global": {
+        "branches": 70,
+        "functions": 70,
+        "lines": 70,
+        "statements": 70
+      }
+    }
+  }
+}

@@ -1,0 +1,386 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Member {
+  id              String                @id @default(cuid())
+  memberCode      String?               @unique  
+  name            String
+  mobile          String                @unique
+  email           String?
+  passwordHash    String?
+  address         String?
+  pinCode         String?
+  gender          String?
+  dateOfBirth     DateTime?
+  panNumber       String?
+  panVerified     Boolean               @default(false)
+  kycTier         String                @default("NONE")
+  kycStatus       String                @default("PENDING")
+  status          String                @default("ACTIVE")
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+  idCards         MemberIdCard[]
+  setuKoshCounter SetuKoshCounter?
+  setuKoshNodes   SetuKoshNode[]
+  tdsLedgers      TdsLedger[]
+  referralBonus   VendorReferralBonus[]
+  vendor          Vendor?
+  vouchers        Voucher[]
+  mainWallet      Wallet?
+  withdrawals     Withdrawal[]
+  purchasedPins   ActivationPin[]       @relation("PurchasedPins")
+  redeemedPins    ActivationPin[]       @relation("RedeemedPins")
+
+  @@map("members")
+}
+
+model MemberIdCard {
+  id                   String   @id @default(cuid())
+  memberId             String
+  member               Member   @relation(fields: [memberId], references: [id])
+  cardNumber           String   @unique
+  type                 String   // MAIN, SUB, REBIRTH
+  status               String   @default("ACTIVE") // ACTIVE, INACTIVE
+  acbStatus            Boolean  @default(false)
+  acbUnlockedAt        DateTime?  // 🆕 ADDED THIS LINE — tracks when ACB unlocked
+  autoPoolNode         AutoPoolNode?
+  mySystemNode         MySystemNode?
+  commissionEntries    CommissionEntry[]
+  withdrawals          Withdrawal[]
+  sponsoredNodes       MySystemNode[] @relation("SponsoredNodes")
+  payOnceLedgerEntries PayOnceLedger[]
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  @@index([memberId])
+}
+
+model AutoPoolNode {
+  id             String       @id @default(cuid())
+  idCardId       String       @unique
+  parentNodeId   String?
+  side           String?
+  globalPosition Int          @unique
+  depthLevel     Int          @default(0)
+  createdAt      DateTime     @default(now())
+  idCard         MemberIdCard @relation(fields: [idCardId], references: [id])
+
+  @@map("autopool_nodes")
+}
+
+model MySystemNode {
+  id             String   @id @default(cuid())
+  idCardId       String   @unique
+  idCard         MemberIdCard @relation(fields: [idCardId], references: [id])
+  parentNodeId   String?
+  parent         MySystemNode? @relation("MySystemTree", fields: [parentNodeId], references: [id])
+  children       MySystemNode[] @relation("MySystemTree")
+  side           String?  // LEFT or RIGHT
+  placementType  String   // ROOT, SPONSOR, AUTO
+  sponsorIdCardId String? // 🆕 Actual sponsor's ID card (for commission tracking)
+  sponsorCard    MemberIdCard? @relation("SponsoredNodes", fields: [sponsorIdCardId], references: [id])
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([parentNodeId])
+  @@index([sponsorIdCardId])
+}
+
+model SetuKoshNode {
+  id             String   @id @default(cuid())
+  memberId       String
+  parentNodeId   String?
+  side           String?
+  globalPosition Int      @unique
+  depthLevel     Int      @default(0)
+  createdAt      DateTime @default(now())
+  member         Member   @relation(fields: [memberId], references: [id])
+
+  @@map("setukosh_nodes")
+}
+
+model SetuKoshCounter {
+  id                     String   @id @default(cuid())
+  memberId               String   @unique
+  counterPaise           Int      @default(0)
+  idsCreated             Int      @default(0)
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+  accumulatedMarginPaise Int      @default(0)
+  member                 Member   @relation(fields: [memberId], references: [id])
+
+  @@map("setukosh_counters")
+}
+
+model Wallet {
+  id            String        @id @default(cuid())
+  memberId      String        @unique
+  balancePaise  Int           @default(0)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  ledgerEntries LedgerEntry[]
+  member        Member        @relation(fields: [memberId], references: [id])
+
+  @@map("wallets")
+}
+
+model LedgerEntry {
+  id                 String   @id @default(cuid())
+  walletId           String
+  type               String
+  amountPaise        Int
+  source             String
+  referenceId        String?
+  description        String?
+  createdAt          DateTime @default(now())
+  balanceAfterPaise  Int
+  balanceBeforePaise Int
+  wallet             Wallet   @relation(fields: [walletId], references: [id])
+
+  @@map("ledger_entries")
+}
+
+model CommissionEntry {
+  id             String       @id @default(cuid())
+  idCardId       String
+  stream         String
+  level          Int
+  amountPaise    Int
+  status         String
+  sourceIdCardId String?
+  confirmedAt    DateTime?
+  createdAt      DateTime     @default(now())
+  idCard         MemberIdCard @relation(fields: [idCardId], references: [id])
+
+  @@index([idCardId])
+  @@index([idCardId, status])
+  @@map("commission_entries")
+}
+
+model PayOnceLedger {
+  id       String       @id @default(cuid())
+  idCardId String
+  level    Int
+  paidVia  String
+  paidAt   DateTime     @default(now())
+  idCard   MemberIdCard @relation(fields: [idCardId], references: [id])
+
+  @@unique([idCardId, level])
+  @@map("payonce_ledger")
+}
+
+model Voucher {
+  id             String    @id @default(cuid())
+  memberId       String
+  idCardId       String?
+  sourceType     String
+  faceValuePaise Int
+  status         String    @default("ACTIVE")
+  issuedAt       DateTime  @default(now())
+  expiresAt      DateTime
+  redeemedAt     DateTime?
+  member         Member    @relation(fields: [memberId], references: [id])
+
+  @@map("vouchers")
+}
+
+model Withdrawal {
+  id               String    @id @default(cuid())
+  memberId         String
+  idCardId         String
+  idCard           MemberIdCard @relation(fields: [idCardId], references: [id]) // 🆕 ADDED THIS LINE
+  method           String
+  grossPaise         Int
+  recovered194RPaise Int       @default(0)
+  tdsPaise           Int
+  adminChargePaise   Int
+  netPaise           Int
+  idempotencyKey     String?   @unique
+  status             String    @default("REQUESTED")
+  requestedAt      DateTime  @default(now())
+  completedAt      DateTime?
+  paymentDetails   String?
+  rejectionReason  String?
+  member           Member    @relation(fields: [memberId], references: [id])
+
+  @@index([idCardId]) // 🆕 Added for query performance
+  @@map("withdrawals")
+}
+
+model TdsLedger {
+  id          String   @id @default(cuid())
+  memberId    String
+  section     String
+  amountPaise Int
+  status      String   @default("HELD")
+  referenceId String?
+  createdAt   DateTime @default(now())
+  member      Member   @relation(fields: [memberId], references: [id])
+
+  @@map("tds_ledger")
+}
+
+model Vendor {
+  id                   String             @id @default(cuid())
+  memberId             String             @unique
+  businessName         String
+  category             String
+  gstin                String?
+  address              String?
+  pinCode              String?
+  marginRatePct        Float
+  status               String             @default("PROVISIONAL")
+  securityDepositPaise Int                @default(500000)
+  walletBalancePaise   Int                @default(0)
+  isDepositFrozen      Boolean            @default(false)
+  lastSaleAt           DateTime?
+  payoutMethod         String             @default("BANK")
+  joinedAt             DateTime           @default(now())
+  verifiedAt           DateTime?
+  sales                VendorSale[]
+  settlements          VendorSettlement[]
+  member               Member             @relation(fields: [memberId], references: [id])
+
+  @@map("vendors")
+}
+
+model VendorSale {
+  id             String   @id @default(cuid())
+  vendorId       String
+  memberId       String
+  idCardId       String?
+  amountPaise    Int
+  marginPaise    Int      @default(0)
+  idempotencyKey String?  @unique
+  status         String   @default("COMPLETED") // COMPLETED, REFUNDED, CANCELLED
+  createdAt      DateTime @default(now())
+  vendor         Vendor   @relation(fields: [vendorId], references: [id])
+
+  @@map("vendor_sales")
+}
+
+model VendorSettlement {
+  id                   String    @id @default(cuid())
+  vendorId             String
+  settlementRunId      String?
+  grossSalesPaise      Int
+  marginPaise          Int
+  postMarginPaise      Int
+  adminChargePaise     Int
+  volumeDiscountPaise  Int       @default(0)
+  earlyFeePaise        Int       @default(0)
+  payoutBeforeTdsPaise Int       @default(0)
+  tdsPaise             Int
+  netPayablePaise      Int
+  payoutMethod         String    @default("BANK")
+  status               String    @default("PENDING") // PENDING, COMPLETED, PAYOUT_DUE
+  periodStart          DateTime
+  periodEnd            DateTime
+  settledAt            DateTime?
+  vendor               Vendor    @relation(fields: [vendorId], references: [id])
+
+  @@map("vendor_settlements")
+}
+
+model VendorReferralBonus {
+  id               String   @id @default(cuid())
+  memberId         String
+  referredVendorId String
+  bonusPaise       Int
+  status           String   @default("PENDING")
+  createdAt        DateTime @default(now())
+  member           Member   @relation(fields: [memberId], references: [id])
+
+  @@map("vendor_referral_bonus")
+}
+
+model PlatformSetting {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  value       String
+  description String?
+  updatedBy   String?
+  updatedAt   DateTime @updatedAt
+
+  @@map("platform_settings")
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  actorId     String?  // Null for SYSTEM actions
+  actorType   String   // ADMIN, SYSTEM, MEMBER
+  action      String
+  entityType  String?
+  entityId    String?
+  metadata    Json?
+  ipAddress   String?
+  createdAt   DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([actorId])
+  @@map("audit_logs")
+}
+
+model AdminUser {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name         String
+  passwordHash String
+  role         String   @default("SUPPORT") // SUPER_ADMIN, ADMIN, SUPPORT
+  status    String   @default("ACTIVE")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("admin_users")
+}
+
+model SystemCounter {
+  id           String   @id
+  currentValue Int      @default(0)
+  updatedAt    DateTime @updatedAt
+
+  @@map("system_counters")
+}
+
+model SettlementRun {
+  id           String    @id @default(cuid())
+  runDate      DateTime  @unique
+  runType      String    @default("REGULAR") // REGULAR, EARLY
+  periodStart  DateTime?
+  periodEnd    DateTime?
+  vendorCount  Int       @default(0)
+  grossPaise   Int       @default(0)
+  netPaise     Int       @default(0)
+  status       String    // RUNNING, COMPLETED, FAILED
+  totalEntries Int       @default(0)
+  totalPaise   Int       @default(0)
+  startedAt    DateTime  @default(now())
+  completedAt  DateTime?
+
+  @@map("settlement_runs")
+}
+
+model ActivationPin {
+  id                  String    @id @default(cuid())
+  pinCode             String    @unique
+  quantity            Int       @default(1)
+  pricePaise          Int
+  status              String    @default("AVAILABLE") // AVAILABLE, REDEEMED, REVOKED
+  purchasedByMemberId String?
+  purchasedByMember   Member?   @relation("PurchasedPins", fields: [purchasedByMemberId], references: [id])
+  redeemedByMemberId  String?
+  redeemedByMember    Member?   @relation("RedeemedPins", fields: [redeemedByMemberId], references: [id])
+  redeemedAt          DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  @@index([purchasedByMemberId])
+  @@index([redeemedByMemberId])
+  @@index([status])
+  @@map("activation_pins")
+}
